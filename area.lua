@@ -293,6 +293,24 @@ if false then -- Change to true for "demo mode"
             vector3(1879.5546,2641.4207,44.6720)
         )
 
+        local nonflat = pArea({
+            color = {72,72,200,128},
+            border = {255,255,255,128},
+            height = 3.4,
+        })
+        nonflat.addBulk(
+            vector3(1889.1487,2527.7349,44.7944),
+            vector3(1889.0958,2523.4109,44.7735),
+            vector3(1880.5088,2523.4016,44.7077),
+            vector3(1881.7913,2511.3113,45.6596),
+            vector3(1887.5636,2507.4001,48.0793),
+            vector3(1894.6342,2509.0535,49.4092),
+            vector3(1899.2479,2514.4243,49.1625),
+            vector3(1901.3768,2520.9243,48.3769),
+            vector3(1900.8844,2527.4045,47.0035),
+            vector3(1896.6481,2534.1299,44.8804)
+        )
+
         while true do
             demoTextY = demoTextBeginY
             prison.draw() -- The draw call is relatively heavy, and should only ever be used for debugging purposes!
@@ -321,6 +339,13 @@ if false then -- Change to true for "demo mode"
                 demoText('Inside the odd shape test')
             else
                 demoText('Outside the odd shape test')
+            end
+
+            nonflat.draw()
+            if nonflat.isInside() then
+                demoText('Inside non-flat test')
+            else
+                demoText('Outside non-flat test')
             end
 
             Citizen.Wait(0)
