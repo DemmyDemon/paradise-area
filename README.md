@@ -93,6 +93,7 @@ If it's still not working, please see the Limitations section at the end of this
 
 There are a handful of things you can do:
 - Stop drawing the area! That's not optimized at all, and is considered a debugging feature.
+- If you have to draw it, disable labels and numbering.
 - Simplify your border a little.
 - Don't add points to the border at run-time (it forces center/radius recalculation).
 - Build some wrapping logic to determine if you even need to check if you're in the area.
@@ -125,6 +126,19 @@ local muhArea = pArea({ -- Assuming @lua method here! Defaults are:
     -- There is a certain "fudge factor" applied as a magic number. This magic
     -- number is called...
     threshold = 3.25,
+
+    -- During development it quickly becomes hard to keep track of which point is
+    -- wich. To help with this, you can enable this to make them numbered.
+    -- Off by default. Uses the border color.
+    numbered = false,
+
+    -- If you have a whole lot of areas that you draw at the same time, it can be
+    -- hard to keep track of which area is wich, too! Set a label to distinguish
+    -- one area from another when drawing.
+    -- This label also serves to show what is considered the "center" of the
+    -- area. It's blank by default. Set it to whatever string you need. Uses the
+    -- border color
+    label = nil,
 })
 ```
 

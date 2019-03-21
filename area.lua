@@ -21,6 +21,20 @@ local function _wall(p1,p1a,p2,p2a,R,G,B,A)
     end
 end
 
+local function _drawLabel(where,what,r,g,b,a)
+    --SetDrawOrigin(where,0) -- Acts funny if set more than 32 times (?) in a frame
+    local onScreen,x,y = GetScreenCoordFromWorldCoord(where.x,where.y,where.z)
+    if onScreen then
+        SetTextColour(r,g,b,a)
+        SetTextScale(0.5,0.5)
+        SetTextOutline()
+        SetTextEntry("STRING")
+        SetTextCentre(true)
+        AddTextComponentString(what)
+        DrawText(x,y)
+    end
+end
+
 local function _draw(area,comparePoint)
     if not comparePoint and area.fade ~= 0 then
         if IsGameplayCamRendering() or IsCinematicCamRendering() then
@@ -48,7 +62,11 @@ local function _draw(area,comparePoint)
         wallAlpha = math.max(wallAlpha,0)
         wallAlpha = math.min(wallAlpha,255)
 
+
         if wallAlpha > 0 or borderAlpha > 0 then
+            if area.label then
+                _drawLabel(area.center,area.label,bR,bG,bB,borderAlpha)
+            end
             local lastPoint = nil
             local lastAbove = nil
             local firstPoint = nil
@@ -56,6 +74,10 @@ local function _draw(area,comparePoint)
             for i,point in ipairs(area.points) do
                 local above = point + area.aboveOffset
                 DrawLine(point,above,bR,bG,bB,borderAlpha)
+                if area.numbered then
+                    local middle = point + (area.aboveOffset / 2)
+                    _drawLabel(middle,i,bR,bG,bB,borderAlpha)
+                end
                 _wall(point,above,lastPoint,lastAbove,wR,wG,wB,wallAlpha)
                 if lastPoint then
                     DrawLine(lastPoint,point,bR,bG,bB,borderAlpha)
@@ -176,6 +198,8 @@ function pArea(spec)
         border = spec.border or spec.color or defaults.color,
         fade = (spec.fade or defaults.fade) * 1.0,
         threshold = spec.threshold or defaults.threshold,
+        numbered = spec.numbered or defaults.numbered,
+        label = spec.label, -- No default.
         points = {},
         maxZ = -math.huge,
         minZ = math.huge,
