@@ -12,12 +12,23 @@ local function sanityCheck(area)
     return true
 end
 
-local function _wall(p1,p1a,p2,p2a,R,G,B,A)
+local function _wall(p1,p1a,p2,p2a,R,G,B,A,compare)
     if A > 0 then
-        DrawPoly(p1,p1a,p2,R,G,B,A)
-        DrawPoly(p1a,p2a,p2,R,G,B,A)
-        DrawPoly(p2,p2a,p1a,R,G,B,A)
-        DrawPoly(p2,p1a,p1,R,G,B,A)
+        if not compare then
+            DrawPoly(p1,p1a,p2,R,G,B,A)
+            DrawPoly(p1a,p2a,p2,R,G,B,A)
+            DrawPoly(p2,p2a,p1a,R,G,B,A)
+            DrawPoly(p2,p1a,p1,R,G,B,A)
+        else
+            local outerProduct = (compare.x-p1.x)*(p2.y-p1.y) - (compare.y-p1.y)*(p2.x-p1.x)
+            if outerProduct <= 0 then
+                DrawPoly(p1,p1a,p2,R,G,B,A)
+                DrawPoly(p1a,p2a,p2,R,G,B,A)
+            else
+                DrawPoly(p2,p2a,p1a,R,G,B,A)
+                DrawPoly(p2,p1a,p1,R,G,B,A)
+            end
+        end
     end
 end
 
@@ -78,8 +89,8 @@ local function _draw(area,comparePoint)
                     local middle = point + (area.aboveOffset / 2)
                     _drawLabel(middle,i,bR,bG,bB,borderAlpha)
                 end
-                _wall(point,above,lastPoint,lastAbove,wR,wG,wB,wallAlpha)
                 if lastPoint then
+                    _wall(point,above,lastPoint,lastAbove,wR,wG,wB,wallAlpha,comparePoint)
                     DrawLine(lastPoint,point,bR,bG,bB,borderAlpha)
                     DrawLine(lastAbove,above,bR,bG,bB,borderAlpha)
                 else
@@ -91,7 +102,7 @@ local function _draw(area,comparePoint)
             end
             DrawLine(lastPoint,firstPoint,bR,bG,bB,borderAlpha)
             DrawLine(lastAbove,firstAbove,bR,bG,bB,borderAlpha)
-            _wall(lastPoint,lastAbove,firstPoint,firstAbove,wR,wG,wB,wallAlpha)
+            _wall(lastPoint,lastAbove,firstPoint,firstAbove,wR,wG,wB,wallAlpha,comparePoint)
             return true
         end
     end
