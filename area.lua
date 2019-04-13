@@ -3,6 +3,7 @@ local defaults = {
     color = {255,255,255,60},
     fade = 100,
     threshold = 3.25,
+    wallFade = 0,
 }
 
 local DEBUGVALUE = nil
@@ -10,6 +11,40 @@ local DEBUGVALUE = nil
 local function sanityCheck(area)
     --TODO actually sanity check
     return true
+end
+
+local function _dotProduct(A,B,C)
+    local BAx = A.x - B.x
+    local BAy = A.y - B.y
+    local BCx = C.x - B.x
+    local BCy = C.y - B.y
+    return (BAx * BCx + BAy * BCy)
+end
+local function _crossProduct(A,B,C)
+    local BAx = A.x - B.x
+    local BAy = A.y - B.y
+    local BCx = C.x - B.x
+    local BCy = C.y - B.y
+    return (BAx * BCy - BAy * BCx)
+end
+local function _lineDistanceSquared(A,B,C)
+    local Dx = B.x - A.x
+    local Dy = B.y - A.y
+    local t = ((C.x - A.x) * Dx + (C.y - A.y) * Dy) / (Dx * Dx + Dy * Dy)
+
+    if t < 0 then
+        Dx = C.x - A.x
+        Dy = C.y - A.y
+    elseif t > 1 then
+        Dx = C.x - B.x
+        Dy = C.y - B.y
+    else
+        local closestX = A.x + t * Dx
+        local closestY = A.y + t * Dy
+        Dx = C.x - closestX
+        Dy = C.y - closestY
+    end
+    return Dx*Dx + Dy*Dy
 end
 
 local function _wall(p1,p1a,p2,p2a,R,G,B,A,compare)
@@ -34,8 +69,8 @@ end
 
 local function _drawLabel(where,what,r,g,b,a)
     --SetDrawOrigin(where,0) -- Acts funny if set more than 32 times (?) in a frame
-    local onScreen,x,y = GetScreenCoordFromWorldCoord(where.x,where.y,where.z)
-    if onScreen then
+    local offScreen,x,y = GetScreenCoordFromWorldCoord(where.x,where.y,where.z)
+    if not offScreen then
         SetTextColour(r,g,b,a)
         SetTextScale(0.5,0.5)
         SetTextOutline()
@@ -58,25 +93,34 @@ local function _draw(area,comparePoint)
 
     if #area.points > 2 then
         local alphaFraction = 1.0
-        if area.fade > 0 then
+        local wallAlpha = 255
+        local borderAlpha = 255
+        local bR,bG,bB,bA = table.unpack(area.border)
+        local wR,wG,wB,wA = table.unpack(area.color)
+
+        if area.fade > 0 and area.wallFade <= 0 then
             local distance = #(area.center - comparePoint)
             alphaFraction = 1.0 - ((1 / area.fade) * distance)
+            borderAlpha = math.ceil(bA * alphaFraction)
+            borderAlpha = math.max(borderAlpha,0)
+            borderAlpha = math.min(borderAlpha,255)
+
+            wallAlpha = math.ceil(wA * alphaFraction)
+            wallAlpha = math.max(wallAlpha,0)
+            wallAlpha = math.min(wallAlpha,255)
         end
 
-        local bR,bG,bB,bA = table.unpack(area.border)
-        local borderAlpha = math.ceil(bA * alphaFraction)
-        borderAlpha = math.max(borderAlpha,0)
-        borderAlpha = math.min(borderAlpha,255)
-
-        local wR,wG,wB,wA = table.unpack(area.color)
-        local wallAlpha = math.ceil(wA * alphaFraction)
-        wallAlpha = math.max(wallAlpha,0)
-        wallAlpha = math.min(wallAlpha,255)
-
-
-        if wallAlpha > 0 or borderAlpha > 0 then
+        if wallAlpha > 0 or borderAlpha > 0 or area.wallFade > 0 then
             if area.label then
-                _drawLabel(area.center,area.label,bR,bG,bB,borderAlpha)
+                local labelAlpha = bA
+                if area.fade then
+                    local distance = #(area.center - comparePoint)
+                    local alphaFraction = 1.0 - ((1 / area.fade) * distance)
+                    labelAlpha = math.ceil(bA * alphaFraction)
+                    labelAlpha = math.max(labelAlpha,0)
+                    labelAlpha = math.min(labelAlpha,255)
+                end
+                _drawLabel(area.center,area.label,bR,bG,bB,labelAlpha)
             end
             local lastPoint = nil
             local lastAbove = nil
@@ -84,25 +128,72 @@ local function _draw(area,comparePoint)
             local firstAbove = nil
             for i,point in ipairs(area.points) do
                 local above = point + area.aboveOffset
-                DrawLine(point,above,bR,bG,bB,borderAlpha)
-                if area.numbered then
-                    local middle = point + (area.aboveOffset / 2)
-                    _drawLabel(middle,i,bR,bG,bB,borderAlpha)
-                end
                 if lastPoint then
-                    _wall(point,above,lastPoint,lastAbove,wR,wG,wB,wallAlpha,comparePoint)
-                    DrawLine(lastPoint,point,bR,bG,bB,borderAlpha)
-                    DrawLine(lastAbove,above,bR,bG,bB,borderAlpha)
+                    if area.wallFade > 0 then
+                        lineDistance = _lineDistanceSquared(point,lastPoint,comparePoint)
+                        wallAlpha = (wA/area.wallFade) * (area.wallFade - lineDistance)
+                        wallAlpha = math.ceil(wallAlpha)
+                        wallAlpha = math.max(0,wallAlpha)
+                        wallAlpha = math.min(255,wallAlpha)
+                        borderAlpha = (bA/area.wallFade) * (area.wallFade - lineDistance)
+                        borderAlpha = math.ceil(borderAlpha)
+                        borderAlpha = math.max(0,borderAlpha)
+                        borderAlpha = math.min(255,borderAlpha)
+                    end
+                    if wallAlpha > 0 then
+                        _wall(point,above,lastPoint,lastAbove,wR,wG,wB,wallAlpha,comparePoint)
+                    end
+                    if borderAlpha > 0 then
+                        DrawLine(lastPoint,point,bR,bG,bB,borderAlpha)
+                        DrawLine(lastAbove,above,bR,bG,bB,borderAlpha)
+                        DrawLine(point,above,bR,bG,bB,borderAlpha)
+                    end
                 else
                     firstAbove = above
                     firstPoint = point
                 end
                 lastAbove = above
                 lastPoint = point
+                if area.numbered then
+                    local middle = point + (area.aboveOffset / 2)
+                    local labelAlpha = bA
+                    if area.fade > 0 and area.wallFade <= 0 then
+                        local distance = #(area.center - comparePoint)
+                        local alphaFraction = 1.0 - ((1 / area.fade) * distance)
+                        labelAlpha = math.ceil(bA * alphaFraction)
+                    elseif area.wallFade > 0 then
+                        local distance = #(comparePoint - middle)
+                        distance = distance * distance -- because area.wallFade is squared, remember?
+                        local alphaFraction = 1.0 - ((1 / area.wallFade) * distance)
+                        labelAlpha = math.ceil(bA * alphaFraction)
+                    end
+                    labelAlpha = math.max(labelAlpha,0)
+                    labelAlpha = math.min(labelAlpha,255)
+                    if labelAlpha > 0 then
+                        _drawLabel(middle,i,bR,bG,bB,labelAlpha)
+                    end
+                end
             end
-            DrawLine(lastPoint,firstPoint,bR,bG,bB,borderAlpha)
-            DrawLine(lastAbove,firstAbove,bR,bG,bB,borderAlpha)
-            _wall(lastPoint,lastAbove,firstPoint,firstAbove,wR,wG,wB,wallAlpha,comparePoint)
+            if area.wallFade > 0 then
+                lineDistance = _lineDistanceSquared(lastPoint,firstPoint,comparePoint)
+                wallAlpha = (wA/area.wallFade) * (area.wallFade - lineDistance)
+                wallAlpha = math.ceil(wallAlpha)
+                wallAlpha = math.max(0,wallAlpha)
+                wallAlpha = math.min(255,wallAlpha)
+                borderAlpha = (bA/area.wallFade) * (area.wallFade - lineDistance)
+                borderAlpha = math.ceil(borderAlpha)
+                borderAlpha = math.max(0,borderAlpha)
+                borderAlpha = math.min(255,borderAlpha)
+            end
+            if borderAlpha > 0 then
+                DrawLine(lastPoint,firstPoint,bR,bG,bB,borderAlpha)
+                DrawLine(lastAbove,firstAbove,bR,bG,bB,borderAlpha)
+                DrawLine(point,above,bR,bG,bB,borderAlpha)
+                DrawLine(firstPoint,firstAbove,bR,bG,bB,borderAlpha)
+            end
+            if wallAlpha > 0 then
+                _wall(lastPoint,lastAbove,firstPoint,firstAbove,wR,wG,wB,wallAlpha,comparePoint)
+            end
             return true
         end
     end
@@ -143,20 +234,6 @@ local function _add(area,point)
     end
 end
 
-local function _dotProduct(A,B,C)
-    local BAx = A.x - B.x
-    local BAy = A.y - B.y
-    local BCx = C.x - B.x
-    local BCy = C.y - B.y
-    return (BAx * BCx + BAy * BCy)
-end
-local function _crossProduct(A,B,C)
-    local BAx = A.x - B.x
-    local BAy = A.y - B.y
-    local BCx = C.x - B.x
-    local BCy = C.y - B.y
-    return (BAx * BCy - BAy * BCx)
-end
 
 local function _angle(A,B,C)
     local dotProduct = _dotProduct(A,B,C)
@@ -208,6 +285,7 @@ function pArea(spec)
         color = spec.color or defaults.color,
         border = spec.border or spec.color or defaults.color,
         fade = (spec.fade or defaults.fade) * 1.0,
+        wallFade = (spec.wallFade or defaults.wallFade) * 1.0,
         threshold = spec.threshold or defaults.threshold,
         numbered = spec.numbered or defaults.numbered,
         label = spec.label, -- No default.
@@ -217,6 +295,7 @@ function pArea(spec)
         radius = 0.0,
         center = vector3(0,0,0),
     }
+    area.wallFade = area.wallFade * area.wallFade -- So we don't have to do a square root on the distance!
     area.aboveOffset = vector3(0.0,0.0,area.height)
     if sanityCheck(area) then
         function area.draw(comparePoint)
@@ -264,6 +343,9 @@ if false then -- Change to true for "demo mode"
             height = 20, -- Height of the area
             color = {255,10,10,128},
             border = {255,0,0,255},
+            wallFade = 20, -- Overrides "fade" (except for the label) to draw the walls when within this number of meters from it. As the name implies, it fades in and out.
+            numbered = true, -- Makes little numbers appear on the "fenceposts" to show which point that "fencepost" represents. Respects fade and wallFade
+            label = 'Bolingbroke Penetentiary', -- Text shown at the center of the area. Respects fade.
         })
         prison.addBulk( -- You usually want to add points in bulk!
             -- These points define the inner fence of Bolingbroke Penitentiary

@@ -93,7 +93,7 @@ If it's still not working, please see the Limitations section at the end of this
 
 There are a handful of things you can do:
 - Stop drawing the area! That's not optimized at all, and is considered a debugging feature.
-- If you have to draw it, disable labels and numbering.
+- If you have to draw it, disable labels, numbering and wallFade.
 - Simplify your border a little.
 - Don't add points to the border at run-time (it forces center/radius recalculation).
 - Build some wrapping logic to determine if you even need to check if you're in the area.
@@ -120,6 +120,13 @@ local muhArea = pArea({ -- Assuming @lua method here! Defaults are:
     -- are transparent, it will not attempt to draw invisible lines and polygons.
     fade = 100,
 
+    -- Same as fade, but for individual walls. Overrides fade.
+    -- Defaults to zero (disabled) as it's expencive to do.
+    -- A positive value here will force a bunch of calculations *per point*, even
+    -- in cases where fade= would render the area entirely invisible. Handle with
+    -- care.
+    wallFade = 0,
+
     -- For performance reasons, the algorithm to determine if you are inside or
     -- outside the area is rather naive, and has relatively low presicion.
     -- It was either this, or limit it to convex polygons!
@@ -144,6 +151,9 @@ local muhArea = pArea({ -- Assuming @lua method here! Defaults are:
 
 Note that if `fade <= 0`, then this feature is disabled, and the area is *always* drawn.
 This is not recommended, and almost never needed, even for debugging.
+
+`wallFade > 0` makes it draw only walles close to you, but it still has to iterate over all the points to determine what walls to draw. This is even slower, and even less recommended, especially for very complex areas.
+
 Also note that the "center point" is a very naive calculation. It is simply the *average* of all the points in the area.
 Fiddle with the threshold only if you want to break things, or *really* need to.
 
@@ -165,3 +175,4 @@ if true then -- Change to true for "demo mode"
 - Performance is not what I'd like it to be.
 - The "fudge factor" means presicion goes out the window for very complex area borders.
 - The code is severely undercommented, so it's probably not very friendly towards people that want to fix my msitakes.
+- wallFade does not draw the border "fence post" against the previous wall if that wall is not also visible.
