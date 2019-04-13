@@ -113,7 +113,7 @@ local function _draw(area,comparePoint)
         if wallAlpha > 0 or borderAlpha > 0 or area.wallFade > 0 then
             if area.label then
                 local labelAlpha = bA
-                if area.fade then
+                if area.fade > 0 then
                     local distance = #(area.center - comparePoint)
                     local alphaFraction = 1.0 - ((1 / area.fade) * distance)
                     labelAlpha = math.ceil(bA * alphaFraction)
