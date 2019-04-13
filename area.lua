@@ -93,10 +93,10 @@ local function _draw(area,comparePoint)
 
     if #area.points > 2 then
         local alphaFraction = 1.0
-        local wallAlpha = 255
-        local borderAlpha = 255
         local bR,bG,bB,bA = table.unpack(area.border)
         local wR,wG,wB,wA = table.unpack(area.color)
+        local wallAlpha = wA
+        local borderAlpha = bA
 
         if area.fade > 0 and area.wallFade <= 0 then
             local distance = #(area.center - comparePoint)
