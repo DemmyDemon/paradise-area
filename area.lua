@@ -68,9 +68,8 @@ local function _wall(p1,p1a,p2,p2a,R,G,B,A,compare)
 end
 
 local function _drawLabel(where,what,r,g,b,a)
-    --SetDrawOrigin(where,0) -- Acts funny if set more than 32 times (?) in a frame
-    local offScreen,x,y = GetScreenCoordFromWorldCoord(where.x,where.y,where.z)
-    if not offScreen then
+    local onScreen,x,y = GetScreenCoordFromWorldCoord(where.x,where.y,where.z)
+    if onScreen then
         SetTextColour(r,g,b,a)
         SetTextScale(0.5,0.5)
         SetTextOutline()
