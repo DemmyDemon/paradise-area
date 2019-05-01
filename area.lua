@@ -203,7 +203,25 @@ local function _recalc(area)
     local totalX = 0.0
     local totalY = 0.0
     local totalZ = 0.0
+    local maxX
+    local maxY
+    local minX
+    local minY
     for i,p in ipairs(area.points) do
+
+        if not maxX or p.x > maxX then
+            maxX = p.x
+        end
+        if not maxY or p.y > maxY then
+            maxY = p.y
+        end
+        if not minX or p.x < minX then
+            minX = p.x
+        end
+        if not minY or p.y < minY then
+            minY = p.y
+        end
+
         totalX = totalX + p.x
         totalY = totalY + p.y
         totalZ = totalZ + p.z
@@ -215,7 +233,10 @@ local function _recalc(area)
         end
     end
 
-    area.center = vector3(totalX/#area.points,totalY/#area.points,(totalZ/#area.points)+(area.height/2))
+    area.max = vector3(maxX,maxY,area.maxZ)
+    area.min = vector3(minX,minY,area.minZ)
+    area.size = area.max - area.min
+    area.center = (area.max + area.min) / 2
 
     -- Yes, I realize this iterates the points list *twice*
     -- If you have suggestions on ways to avoid this, please make a pull request.
@@ -293,6 +314,9 @@ function pArea(spec)
         minZ = math.huge,
         radius = 0.0,
         center = vector3(0,0,0),
+        size = vector3(0,0,0),
+        max = vector3(0,0,0),
+        min = vector3(0,0,0),
     }
     area.wallFade = area.wallFade * area.wallFade -- So we don't have to do a square root on the distance!
     area.aboveOffset = vector3(0.0,0.0,area.height)
