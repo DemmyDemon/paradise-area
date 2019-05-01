@@ -154,8 +154,42 @@ This is not recommended, and almost never needed, even for debugging.
 
 `wallFade > 0` makes it draw only walles close to you, but it still has to iterate over all the points to determine what walls to draw. This is even slower, and even less recommended, especially for very complex areas.
 
-Also note that the "center point" is a very naive calculation. It is simply the *average* of all the points in the area.
+Also note that the "center point" is a very naive calculation. It is actually the center of the bounding box that will contain the whole area.
+
 Fiddle with the threshold only if you want to break things, or *really* need to.
+
+## What other information is available? ##
+
+After each recalculation, this information is updated to reflect the state of the area:
+
+| Key    | Type    | Contains                                                       |
+|--------|---------|----------------------------------------------------------------|
+| maxZ   | float   | The highest border point for the whole area + height of area   |
+| minZ   | float   | The lowest border point for the whole area                     |
+| radius | float   | Distance from the center to the furthest point                 |
+| center | vector3 | The center of *the bounding box* that will hold the whole area |
+| size   | vector3 | The size of *the bounding box* that will hold the whole area   |
+| max    | vector3 | north-west-top point of *the bounding box*                     |
+| min    | vector3 | south-east-bottom point of *the bounding box*                  |
+
+The purpose of providing bounding box data is so it is much easier to include in an octree.
+
+For example, I am adding areas to an octree like so:
+
+```lua
+local whitelistedAreas = pOctree(vector3(0,1500,0),vector3(12000,12000,2000))
+for name,points in pairs(config.whitelistedAreas) do
+    local area = pArea({
+        label='Whitelisted area: '..name,
+        color={255,255,255,10},
+        border={255,255,255,255},
+    })
+    area.addBulk(table.unpack(points))
+    whitelistedAreas:insert(area.center,area.size,area)
+end
+```
+
+**That octree implementation not included in this release**, but it might be released separately later.
 
 ## Can I just sort of try it out first? ##
 
