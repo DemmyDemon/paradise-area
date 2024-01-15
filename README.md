@@ -1,7 +1,7 @@
 Paradise Area
 =============
 
-This is a useless resource for end-users. It is intended for developers of [FiveM](http://fivem.org) resource, to aid them in detecing if a user is in a specified area.
+This is a useless resource for end-users. It is intended for developers of [FiveM](http://fivem.net) resource, to aid them in detecing if a user is in a specified area.
 If you are not a developer, then this is not meant for you.
 
 ## What does it look like, though? ##
